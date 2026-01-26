@@ -194,24 +194,38 @@
   </div>
 
   <script>
-    // Control variables
+    // ============================================
+    // GLOBAL SHARED VARIABLES (used by all toys)
+    // ============================================
     let bgColor, laserColor, mirrorColor, fillColor;
     let laserWeight = 2;
     let mirrorWeight = 2;
     let useFill = false;
     let currentToy = 'laserMirror0';
     
-    // Mirror angle for laserMirror0
-    let mirrorAngle = 45;
+    // ============================================
+    // TOY-SPECIFIC STATE VARIABLES
+    // ============================================
+    
+    // LaserMirror0 variables
+    let mirror0_angle = 45;
+    
+    // LaserMirror1 variables (add as needed)
+    // let mirror1_angles = [];
+    
+    // LaserMirror2 variables (add as needed)
+    // etc...
+    
+    // ============================================
+    // MAIN SETUP AND DRAW
+    // ============================================
     
     function setup() {
       let canvas = createCanvas(600, 600);
       canvas.parent('canvas-container');
-      
-      // Set line caps to round
       strokeCap(ROUND);
       
-      // Initialize colors
+      // Initialize shared color variables
       bgColor = color(document.getElementById('backgroundColor').value);
       laserColor = color(document.getElementById('laserColor').value);
       mirrorColor = color(document.getElementById('mirrorColor').value);
@@ -219,7 +233,72 @@
       laserWeight = parseFloat(document.getElementById('laserWeight').value);
       mirrorWeight = parseFloat(document.getElementById('mirrorWeight').value);
       
-      // Add event listeners
+      // Setup event listeners for controls
+      setupControlListeners();
+    }
+    
+    function draw() {
+      background(bgColor);
+      
+      // Route to appropriate toy drawing function
+      switch(currentToy) {
+        case 'laserMirror0':
+          drawLaserMirror0();
+          break;
+        case 'laserMirror1':
+          drawLaserMirror1();
+          break;
+        case 'laserMirror2':
+          drawLaserMirror2();
+          break;
+        case 'laserMirror3':
+          drawLaserMirror3();
+          break;
+        case 'laserMirror4':
+          drawLaserMirror4();
+          break;
+        case 'laserMirror5':
+          drawLaserMirror5();
+          break;
+      }
+    }
+    
+    // ============================================
+    // SHARED INTERACTION ROUTING
+    // ============================================
+    
+    function mousePressed() {
+      // Only process if click is within canvas
+      if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+        // Route to appropriate toy interaction function
+        switch(currentToy) {
+          case 'laserMirror0':
+            laserMirror0_mousePressed();
+            break;
+          case 'laserMirror1':
+            laserMirror1_mousePressed();
+            break;
+          case 'laserMirror2':
+            laserMirror2_mousePressed();
+            break;
+          case 'laserMirror3':
+            laserMirror3_mousePressed();
+            break;
+          case 'laserMirror4':
+            laserMirror4_mousePressed();
+            break;
+          case 'laserMirror5':
+            laserMirror5_mousePressed();
+            break;
+        }
+      }
+    }
+    
+    // ============================================
+    // CONTROL SETUP
+    // ============================================
+    
+    function setupControlListeners() {
       document.getElementById('backgroundColor').addEventListener('input', (e) => {
         bgColor = color(e.target.value);
       });
@@ -254,46 +333,16 @@
       });
     }
     
-    function mousePressed() {
-      // Only update mirror angle if click is within canvas
-      if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
-        // Calculate angle from center to mouse
-        let centerX = width / 2;
-        let centerY = height / 2;
-        let dx = mouseX - centerX;
-        let dy = mouseY - centerY;
-        
-        // Calculate angle in degrees
-        mirrorAngle = degrees(atan2(dy, dx));
-      }
-    }
+    // ============================================
+    // LASER MIRROR 0
+    // ============================================
     
-    function draw() {
-      background(bgColor);
-      
-      // Call the appropriate toy function based on selection
-      if (currentToy === 'laserMirror0') {
-        drawLaserMirror0();
-      } else if (currentToy === 'laserMirror1') {
-        drawLaserMirror1();
-      } else if (currentToy === 'laserMirror2') {
-        drawLaserMirror2();
-      } else if (currentToy === 'laserMirror3') {
-        drawLaserMirror3();
-      } else if (currentToy === 'laserMirror4') {
-        drawLaserMirror4();
-      } else if (currentToy === 'laserMirror5') {
-        drawLaserMirror5();
-      }
-    }
-    
-    // LaserMirror0 - Single mirror reflection
     function drawLaserMirror0() {
       let centerX = width / 2;
       let centerY = height / 2;
 
       // Calculate reflection angle
-      let reflectionAngle = mirrorAngle * 2;
+      let reflectionAngle = mirror0_angle * 2;
 
       // Calculate direction
       let dx = cos(radians(reflectionAngle));
@@ -355,49 +404,98 @@
       strokeWeight(mirrorWeight);
       push();
       translate(centerX, centerY);
-      rotate(radians(mirrorAngle));
+      rotate(radians(mirror0_angle));
       line(-100, 0, 100, 0);
       pop();
     }
     
+    function laserMirror0_mousePressed() {
+      // Rotate mirror to face mouse click
+      let centerX = width / 2;
+      let centerY = height / 2;
+      let dx = mouseX - centerX;
+      let dy = mouseY - centerY;
+      mirror0_angle = degrees(atan2(dy, dx));
+    }
+    
+    // ============================================
+    // LASER MIRROR 1
+    // ============================================
+    
     function drawLaserMirror1() {
-      // Your laserMirror1 code here
+      // Coming soon placeholder
       textAlign(CENTER, CENTER);
       fill(0);
       noStroke();
       text('LaserMirror1 - Coming Soon', width/2, height/2);
     }
     
+    function laserMirror1_mousePressed() {
+      // Add interaction logic here
+    }
+    
+    // ============================================
+    // LASER MIRROR 2
+    // ============================================
+    
     function drawLaserMirror2() {
-      // Your laserMirror2 code here
+      // Coming soon placeholder
       textAlign(CENTER, CENTER);
       fill(0);
       noStroke();
       text('LaserMirror2 - Coming Soon', width/2, height/2);
     }
     
+    function laserMirror2_mousePressed() {
+      // Add interaction logic here
+    }
+    
+    // ============================================
+    // LASER MIRROR 3
+    // ============================================
+    
     function drawLaserMirror3() {
-      // Your laserMirror3 code here
+      // Coming soon placeholder
       textAlign(CENTER, CENTER);
       fill(0);
       noStroke();
       text('LaserMirror3 - Coming Soon', width/2, height/2);
     }
     
+    function laserMirror3_mousePressed() {
+      // Add interaction logic here
+    }
+    
+    // ============================================
+    // LASER MIRROR 4
+    // ============================================
+    
     function drawLaserMirror4() {
-      // Your laserMirror4 code here
+      // Coming soon placeholder
       textAlign(CENTER, CENTER);
       fill(0);
       noStroke();
       text('LaserMirror4 - Coming Soon', width/2, height/2);
     }
     
+    function laserMirror4_mousePressed() {
+      // Add interaction logic here
+    }
+    
+    // ============================================
+    // LASER MIRROR 5
+    // ============================================
+    
     function drawLaserMirror5() {
-      // Your laserMirror5 code here
+      // Coming soon placeholder
       textAlign(CENTER, CENTER);
       fill(0);
       noStroke();
       text('LaserMirror5 - Coming Soon', width/2, height/2);
+    }
+    
+    function laserMirror5_mousePressed() {
+      // Add interaction logic here
     }
   </script>
 </body>
