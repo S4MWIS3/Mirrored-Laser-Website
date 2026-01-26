@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Laser Mirror Toys</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js"></script>
+  <script src="https://unpkg.com/p5.js-svg@1.5.1"></script>
   <style>
     body {
       margin: 0;
@@ -117,6 +118,27 @@
     h2 {
       margin-top: 0;
     }
+
+    .export-button {
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+
+    .export-button:hover {
+      background-color: #45a049;
+    }
+
+    .export-button:active {
+      transform: translateY(1px);
+    }
   </style>
 </head>
 <body>
@@ -190,6 +212,8 @@
           </div>
         </div>
       </div>
+
+      <button class="export-button" onclick="exportSVG()">Export SVG</button>
     </div>
   </div>
 
@@ -212,6 +236,7 @@
     let mirrorWeight = 2;
     let useFill = false;
     let currentToy = 'laserMirror0';
+    let exportMode = false;
     
     // ============================================
     // MAIN SETUP AND DRAW
@@ -289,6 +314,71 @@
             break;
         }
       }
+    }
+    
+    // ============================================
+    // SVG EXPORT
+    // ============================================
+    
+    function exportSVG() {
+      console.log("Exporting SVG...");
+      
+      exportMode = true;
+      
+      // Remove old canvas
+      let oldCanvas = select('canvas');
+      if (oldCanvas) oldCanvas.remove();
+      
+      // Create SVG canvas
+      createCanvas(600, 600, SVG);
+      strokeCap(ROUND);
+      
+      // Draw current artwork
+      background(bgColor);
+      switch(currentToy) {
+        case 'laserMirror0':
+          drawLaserMirror0();
+          break;
+        case 'laserMirror1':
+          drawLaserMirror1();
+          break;
+        case 'laserMirror2':
+          drawLaserMirror2();
+          break;
+        case 'laserMirror3':
+          drawLaserMirror3();
+          break;
+        case 'laserMirror4':
+          drawLaserMirror4();
+          break;
+        case 'laserMirror5':
+          drawLaserMirror5();
+          break;
+      }
+      
+      // Save SVG
+      save(currentToy + '.svg');
+      
+      console.log("SVG saved! Restoring preview...");
+      
+      // Wait a moment then restore preview canvas
+      setTimeout(() => {
+        exportMode = false;
+        
+        // Remove SVG canvas
+        let svgCanvas = select('canvas');
+        if (svgCanvas) svgCanvas.remove();
+        
+        // Wait for DOM to settle
+        setTimeout(() => {
+          // Recreate preview canvas
+          let canvas = createCanvas(600, 600);
+          canvas.parent('canvas-container');
+          strokeCap(ROUND);
+          
+          console.log("Preview restored.");
+        }, 100);
+      }, 500);
     }
     
     // ============================================
