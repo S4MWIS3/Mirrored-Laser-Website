@@ -26,7 +26,6 @@
     
     .box {
       background-color: white;
-      padding: 0;
       flex: 1;
     }
     
@@ -35,6 +34,8 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      padding: 0;
+      line-height: 0;
     }
     
     .controls-box {
@@ -59,12 +60,25 @@
       box-sizing: border-box;
     }
     
-    .control-group input[type="color"] {
-      width: 100%;
+    .color-weight-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .color-weight-row input[type="color"] {
+      flex: 2;
       height: 50px;
       padding: 0;
       border: 1px solid #ddd;
       cursor: pointer;
+      box-sizing: border-box;
+    }
+    
+    .color-weight-row input[type="number"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
       box-sizing: border-box;
     }
     
@@ -114,17 +128,25 @@
       
       <div class="control-group">
         <label>Background</label>
-        <input type="color" id="backgroundColor" value="#ffffff">
+        <div class="color-weight-row">
+          <input type="color" id="backgroundColor" value="#ffffff">
+        </div>
       </div>
       
       <div class="control-group">
         <label>Laser</label>
-        <input type="color" id="laserColor" value="#ff0000">
+        <div class="color-weight-row">
+          <input type="color" id="laserColor" value="#ff0000">
+          <input type="number" id="laserWeight" value="2" min="1" max="20" step="0.5">
+        </div>
       </div>
       
       <div class="control-group">
         <label>Mirror</label>
-        <input type="color" id="mirrorColor" value="#000000">
+        <div class="color-weight-row">
+          <input type="color" id="mirrorColor" value="#000000">
+          <input type="number" id="mirrorWeight" value="2" min="1" max="20" step="0.5">
+        </div>
       </div>
       
       <div class="control-group">
@@ -136,7 +158,9 @@
       
       <div class="control-group" id="fillColorGroup" style="display: none;">
         <label>Fill</label>
-        <input type="color" id="fillColor" value="#ffff00">
+        <div class="color-weight-row">
+          <input type="color" id="fillColor" value="#ffff00">
+        </div>
       </div>
     </div>
   </div>
@@ -144,18 +168,28 @@
   <script>
     // Control variables
     let bgColor, laserColor, mirrorColor, fillColor;
+    let laserWeight = 2;
+    let mirrorWeight = 2;
     let useFill = false;
     let currentToy = 'laserMirror0';
+    
+    // Mirror angle for laserMirror0
+    let mirrorAngle = 45;
     
     function setup() {
       let canvas = createCanvas(600, 600);
       canvas.parent('canvas-container');
+      
+      // Set line caps to round
+      strokeCap(ROUND);
       
       // Initialize colors
       bgColor = color(document.getElementById('backgroundColor').value);
       laserColor = color(document.getElementById('laserColor').value);
       mirrorColor = color(document.getElementById('mirrorColor').value);
       fillColor = color(document.getElementById('fillColor').value);
+      laserWeight = parseFloat(document.getElementById('laserWeight').value);
+      mirrorWeight = parseFloat(document.getElementById('mirrorWeight').value);
       
       // Add event listeners
       document.getElementById('backgroundColor').addEventListener('input', (e) => {
@@ -166,8 +200,16 @@
         laserColor = color(e.target.value);
       });
       
+      document.getElementById('laserWeight').addEventListener('input', (e) => {
+        laserWeight = parseFloat(e.target.value);
+      });
+      
       document.getElementById('mirrorColor').addEventListener('input', (e) => {
         mirrorColor = color(e.target.value);
+      });
+      
+      document.getElementById('mirrorWeight').addEventListener('input', (e) => {
+        mirrorWeight = parseFloat(e.target.value);
       });
       
       document.getElementById('fillColor').addEventListener('input', (e) => {
@@ -182,6 +224,20 @@
       document.getElementById('toySelect').addEventListener('change', (e) => {
         currentToy = e.target.value;
       });
+    }
+    
+    function mousePressed() {
+      // Only update mirror angle if click is within canvas
+      if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+        // Calculate angle from center to mouse
+        let centerX = width / 2;
+        let centerY = height / 2;
+        let dx = mouseX - centerX;
+        let dy = mouseY - centerY;
+        
+        // Calculate angle in degrees
+        mirrorAngle = degrees(atan2(dy, dx));
+      }
     }
     
     function draw() {
@@ -205,16 +261,11 @@
     
     // LaserMirror0 - Single mirror reflection
     function drawLaserMirror0() {
-      // No margin - draw to edges
-      strokeWeight(2);
-      
-      // Middle line angle
       let centerX = width / 2;
       let centerY = height / 2;
-      let angle = 45; // Angle of the middle line in degrees
 
       // Calculate reflection angle
-      let reflectionAngle = angle * 2;
+      let reflectionAngle = mirrorAngle * 2;
 
       // Calculate direction
       let dx = cos(radians(reflectionAngle));
@@ -224,6 +275,7 @@
 
       // Find intersection with border edges
       let rightEdge = width;
+      let leftEdge = 0;
       let topEdge = 0;
       let bottomEdge = height;
 
@@ -231,7 +283,9 @@
       let t = Infinity;
       if (dx !== 0) {
         let tRight = (rightEdge - centerX) / dx;
+        let tLeft = (leftEdge - centerX) / dx;
         if (tRight > 0) t = min(t, tRight);
+        if (tLeft > 0) t = min(t, tLeft);
       }
       if (dy !== 0) {
         let tTop = (topEdge - centerY) / dy;
@@ -261,6 +315,7 @@
 
       // Draw first line segment (horizontal from left edge to center)
       stroke(laserColor);
+      strokeWeight(laserWeight);
       noFill();
       line(0, centerY, centerX, centerY);
 
@@ -269,9 +324,10 @@
 
       // Draw the middle "mirror" line
       stroke(mirrorColor);
+      strokeWeight(mirrorWeight);
       push();
       translate(centerX, centerY);
-      rotate(radians(angle));
+      rotate(radians(mirrorAngle));
       line(-100, 0, 100, 0);
       pop();
     }
