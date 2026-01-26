@@ -26,8 +26,7 @@
     
     .box {
       background-color: white;
-      padding: 20px;
-      border-radius: 8px;
+      padding: 0;
       flex: 1;
     }
     
@@ -35,6 +34,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      overflow: hidden;
+    }
+    
+    .controls-box {
+      padding: 20px;
     }
     
     .control-group {
@@ -43,32 +47,47 @@
     
     .control-group label {
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       font-weight: bold;
       text-align: left;
     }
     
-    .control-group select,
-    .control-group input[type="color"] {
+    .control-group select {
       width: 100%;
       padding: 8px;
       border: 1px solid #ddd;
-      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .control-group input[type="color"] {
+      width: 100%;
+      height: 50px;
+      padding: 0;
+      border: 1px solid #ddd;
+      cursor: pointer;
       box-sizing: border-box;
     }
     
     .control-group input[type="checkbox"] {
       margin-right: 8px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
     }
     
     .checkbox-label {
       display: flex;
       align-items: center;
-      font-weight: normal;
+      font-weight: bold;
+      cursor: pointer;
     }
     
     #fillColorGroup {
       margin-top: 10px;
+    }
+
+    h2 {
+      margin-top: 0;
     }
   </style>
 </head>
@@ -78,7 +97,7 @@
       <!-- P5.js canvas will appear here -->
     </div>
     
-    <div class="box">
+    <div class="box controls-box">
       <h2>Controls</h2>
       
       <div class="control-group">
@@ -117,7 +136,7 @@
       
       <div class="control-group" id="fillColorGroup" style="display: none;">
         <label>Fill</label>
-        <input type="color" id="fillColor" value="#00ff00">
+        <input type="color" id="fillColor" value="#ffff00">
       </div>
     </div>
   </div>
@@ -186,24 +205,13 @@
     
     // LaserMirror0 - Single mirror reflection
     function drawLaserMirror0() {
-      let margin = 20;
-      
-      // Set stroke/fill based on controls
-      if (useFill) {
-        fill(fillColor);
-      } else {
-        noFill();
-      }
+      // No margin - draw to edges
       strokeWeight(2);
       
       // Middle line angle
       let centerX = width / 2;
       let centerY = height / 2;
       let angle = 45; // Angle of the middle line in degrees
-
-      // Draw first line segment (horizontal from left edge to center)
-      stroke(laserColor);
-      line(margin, centerY, centerX, centerY);
 
       // Calculate reflection angle
       let reflectionAngle = angle * 2;
@@ -215,9 +223,9 @@
       if (abs(dy) < 1e-6) dy = 0;
 
       // Find intersection with border edges
-      let rightEdge = width - margin;
-      let topEdge = margin;
-      let bottomEdge = height - margin;
+      let rightEdge = width;
+      let topEdge = 0;
+      let bottomEdge = height;
 
       // Calculate distances to each edge
       let t = Infinity;
@@ -240,6 +248,22 @@
         endY = centerY + dy * t;
       }
 
+      // If fill is enabled, create a closed shape
+      if (useFill) {
+        fill(fillColor);
+        noStroke();
+        beginShape();
+        vertex(0, centerY);
+        vertex(centerX, centerY);
+        vertex(endX, endY);
+        endShape(CLOSE);
+      }
+
+      // Draw first line segment (horizontal from left edge to center)
+      stroke(laserColor);
+      noFill();
+      line(0, centerY, centerX, centerY);
+
       // Draw reflected line segment to border
       line(centerX, centerY, endX, endY);
 
@@ -250,11 +274,6 @@
       rotate(radians(angle));
       line(-100, 0, 100, 0);
       pop();
-      
-      // Border
-      noFill();
-      stroke(0);
-      rect(margin, margin, width - margin * 2, height - margin * 2);
     }
     
     function drawLaserMirror1() {
