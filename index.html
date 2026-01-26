@@ -193,28 +193,25 @@
     </div>
   </div>
 
+  <!-- Load sketch files -->
+  <script src="laserMirror0.js"></script>
+  <script src="laserMirror1.js"></script>
+  <script src="laserMirror2.js"></script>
+  <script src="laserMirror3.js"></script>
+  <script src="laserMirror4.js"></script>
+  <script src="laserMirror5.js"></script>
+
+  <!-- Main control script -->
   <script>
     // ============================================
-    // GLOBAL SHARED VARIABLES (used by all toys)
+    // GLOBAL SHARED VARIABLES
+    // These are accessible by all sketch files
     // ============================================
     let bgColor, laserColor, mirrorColor, fillColor;
     let laserWeight = 2;
     let mirrorWeight = 2;
     let useFill = false;
     let currentToy = 'laserMirror0';
-    
-    // ============================================
-    // TOY-SPECIFIC STATE VARIABLES
-    // ============================================
-    
-    // LaserMirror0 variables
-    let mirror0_angle = 45;
-    
-    // LaserMirror1 variables (add as needed)
-    // let mirror1_angles = [];
-    
-    // LaserMirror2 variables (add as needed)
-    // etc...
     
     // ============================================
     // MAIN SETUP AND DRAW
@@ -331,171 +328,6 @@
       document.getElementById('toySelect').addEventListener('change', (e) => {
         currentToy = e.target.value;
       });
-    }
-    
-    // ============================================
-    // LASER MIRROR 0
-    // ============================================
-    
-    function drawLaserMirror0() {
-      let centerX = width / 2;
-      let centerY = height / 2;
-
-      // Calculate reflection angle
-      let reflectionAngle = mirror0_angle * 2;
-
-      // Calculate direction
-      let dx = cos(radians(reflectionAngle));
-      let dy = sin(radians(reflectionAngle));
-      if (abs(dx) < 1e-6) dx = 0;
-      if (abs(dy) < 1e-6) dy = 0;
-
-      // Find intersection with border edges
-      let rightEdge = width;
-      let leftEdge = 0;
-      let topEdge = 0;
-      let bottomEdge = height;
-
-      // Calculate distances to each edge
-      let t = Infinity;
-      if (dx !== 0) {
-        let tRight = (rightEdge - centerX) / dx;
-        let tLeft = (leftEdge - centerX) / dx;
-        if (tRight > 0) t = min(t, tRight);
-        if (tLeft > 0) t = min(t, tLeft);
-      }
-      if (dy !== 0) {
-        let tTop = (topEdge - centerY) / dy;
-        let tBottom = (bottomEdge - centerY) / dy;
-        if (tTop > 0) t = min(t, tTop);
-        if (tBottom > 0) t = min(t, tBottom);
-      }
-
-      // Calculate end point
-      let endX = centerX;
-      let endY = centerY;
-      if (isFinite(t)) {
-        endX = centerX + dx * t;
-        endY = centerY + dy * t;
-      }
-
-      // If fill is enabled, create a closed shape
-      if (useFill) {
-        fill(fillColor);
-        noStroke();
-        beginShape();
-        vertex(0, centerY);
-        vertex(centerX, centerY);
-        vertex(endX, endY);
-        endShape(CLOSE);
-      }
-
-      // Draw first line segment (horizontal from left edge to center)
-      stroke(laserColor);
-      strokeWeight(laserWeight);
-      noFill();
-      line(0, centerY, centerX, centerY);
-
-      // Draw reflected line segment to border
-      line(centerX, centerY, endX, endY);
-
-      // Draw the middle "mirror" line
-      stroke(mirrorColor);
-      strokeWeight(mirrorWeight);
-      push();
-      translate(centerX, centerY);
-      rotate(radians(mirror0_angle));
-      line(-100, 0, 100, 0);
-      pop();
-    }
-    
-    function laserMirror0_mousePressed() {
-      // Rotate mirror to face mouse click
-      let centerX = width / 2;
-      let centerY = height / 2;
-      let dx = mouseX - centerX;
-      let dy = mouseY - centerY;
-      mirror0_angle = degrees(atan2(dy, dx));
-    }
-    
-    // ============================================
-    // LASER MIRROR 1
-    // ============================================
-    
-    function drawLaserMirror1() {
-      // Coming soon placeholder
-      textAlign(CENTER, CENTER);
-      fill(0);
-      noStroke();
-      text('LaserMirror1 - Coming Soon', width/2, height/2);
-    }
-    
-    function laserMirror1_mousePressed() {
-      // Add interaction logic here
-    }
-    
-    // ============================================
-    // LASER MIRROR 2
-    // ============================================
-    
-    function drawLaserMirror2() {
-      // Coming soon placeholder
-      textAlign(CENTER, CENTER);
-      fill(0);
-      noStroke();
-      text('LaserMirror2 - Coming Soon', width/2, height/2);
-    }
-    
-    function laserMirror2_mousePressed() {
-      // Add interaction logic here
-    }
-    
-    // ============================================
-    // LASER MIRROR 3
-    // ============================================
-    
-    function drawLaserMirror3() {
-      // Coming soon placeholder
-      textAlign(CENTER, CENTER);
-      fill(0);
-      noStroke();
-      text('LaserMirror3 - Coming Soon', width/2, height/2);
-    }
-    
-    function laserMirror3_mousePressed() {
-      // Add interaction logic here
-    }
-    
-    // ============================================
-    // LASER MIRROR 4
-    // ============================================
-    
-    function drawLaserMirror4() {
-      // Coming soon placeholder
-      textAlign(CENTER, CENTER);
-      fill(0);
-      noStroke();
-      text('LaserMirror4 - Coming Soon', width/2, height/2);
-    }
-    
-    function laserMirror4_mousePressed() {
-      // Add interaction logic here
-    }
-    
-    // ============================================
-    // LASER MIRROR 5
-    // ============================================
-    
-    function drawLaserMirror5() {
-      // Coming soon placeholder
-      textAlign(CENTER, CENTER);
-      fill(0);
-      noStroke();
-      text('LaserMirror5 - Coming Soon', width/2, height/2);
-    }
-    
-    function laserMirror5_mousePressed() {
-      // Add interaction logic here
     }
   </script>
 </body>
