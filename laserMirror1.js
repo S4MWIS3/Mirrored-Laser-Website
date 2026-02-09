@@ -142,11 +142,17 @@ function laserMirror1_mousePressed() {
   }
   
   if (closestIndex !== -1) {
-    // Rotate the closest mirror to face the mouse
+    // Rotate the closest mirror so its normal faces the mouse
     let gridLine = mirror1_gridLines[closestIndex];
     let dx = mouseX - gridLine.x;
     let dy = mouseY - gridLine.y;
-    let newAngle = degrees(atan2(dy, dx));
+    
+    // Calculate angle to mouse
+    let angleToMouse = degrees(atan2(dy, dx));
+    
+    // Subtract 90 degrees so the perpendicular faces the mouse
+    let newAngle = angleToMouse - 90;
+    
     mirror1_gridLines[closestIndex].angle = newAngle;
     
     // Update the stored angles array
