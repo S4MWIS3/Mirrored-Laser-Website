@@ -78,10 +78,15 @@ function drawLaserMirror0() {
 }
 
 function laserMirror0_mousePressed() {
-  // Rotate mirror to face mouse click
+  // Rotate mirror so its perpendicular faces mouse click
   let centerX = width / 2;
   let centerY = height / 2;
   let dx = mouseX - centerX;
   let dy = mouseY - centerY;
-  mirror0_angle = degrees(atan2(dy, dx));
+  
+  // Calculate angle to mouse
+  let angleToMouse = degrees(atan2(dy, dx));
+  
+  // Subtract 90 degrees so the perpendicular faces the mouse
+  mirror0_angle = angleToMouse - 90;
 }
