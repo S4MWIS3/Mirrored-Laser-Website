@@ -4,11 +4,11 @@
 
 // Toy-specific state variables
 let mirror2_gridLines = [];
-let mirror2_gridRows = 3;
-let mirror2_gridCols = 3;
+let mirror2_gridRows = 5;
+let mirror2_gridCols = 5;
 let mirror2_gridSize = 500;
 let mirror2_lineLength = 50;
-let mirror2_hitMirrors = []; // Track which mirrors were hit by laser
+let mirror2_hitMirrors = new Set(); // Track which mirrors were hit by laser
 
 // Angle steps for randomization
 const mirror2_angleSteps = [0, 20, 40, 60, 80, 100, 120, 140, 160];
@@ -28,7 +28,7 @@ function drawLaserMirror2() {
   let gridStartY = (height - mirror2_gridSize) / 2;
   
   // Reset hit mirrors tracking
-  mirror2_hitMirrors = [];
+  mirror2_hitMirrors.clear();
   
   // Trace the laser first to determine which mirrors get hit
   let rayX = 0;
@@ -69,9 +69,7 @@ function drawLaserMirror2() {
       break;
     } else {
       // Track this mirror as hit
-      if (!mirror2_hitMirrors.includes(closestHit.index)) {
-        mirror2_hitMirrors.push(closestHit.index);
-      }
+      mirror2_hitMirrors.add(closestHit.index);
       
       // Hit grid line, reflect
       let mirrorAngle = closestHit.gridLine.angle;
@@ -111,12 +109,11 @@ function drawLaserMirror2() {
     let gridLine = mirror2_gridLines[i];
     
     // Set opacity based on whether this mirror was hit
-    if (mirror2_hitMirrors.includes(i)) {
+    if (mirror2_hitMirrors.has(i)) {
       stroke(mirrorColor); // Full opacity
     } else {
-      let c = color(mirrorColor);
-      c.setAlpha(128); // 50% opacity
-      stroke(c);
+      // Create a copy of the color with 50% opacity
+      stroke(red(mirrorColor), green(mirrorColor), blue(mirrorColor), 128);
     }
     
     push();
@@ -165,16 +162,6 @@ function drawLaserMirror2() {
     // Draw line segment to hit point
     line(rayX, rayY, closestHit.x, closestHit.y);
     
-    // If fill is enabled, could add fill shapes here
-    if (useFill && hitType === 'grid') {
-      fill(fillColor);
-      noStroke();
-      ellipse(closestHit.x, closestHit.y, 5, 5);
-      stroke(laserColor);
-      strokeWeight(laserWeight);
-      noFill();
-    }
-    
     if (hitType === 'border') {
       break;
     } else {
@@ -216,33 +203,8 @@ function drawLaserMirror2() {
 }
 
 function laserMirror2_mousePressed() {
-  // Find which grid line was clicked and rotate that mirror line
-  let closestIndex = -1;
-  let closestDist = Infinity;
-  
-  for (let i = 0; i < mirror2_gridLines.length; i++) {
-    let gridLine = mirror2_gridLines[i];
-    let d = dist(mouseX, mouseY, gridLine.x, gridLine.y);
-    if (d < closestDist && d < 50) { // Within 50 pixels
-      closestDist = d;
-      closestIndex = i;
-    }
-  }
-  
-  if (closestIndex !== -1) {
-    // Rotate the closest mirror so its normal faces the mouse
-    let gridLine = mirror2_gridLines[closestIndex];
-    let dx = mouseX - gridLine.x;
-    let dy = mouseY - gridLine.y;
-    
-    // Calculate angle to mouse
-    let angleToMouse = degrees(atan2(dy, dx));
-    
-    // Subtract 90 degrees so the perpendicular faces the mouse
-    let newAngle = angleToMouse - 90;
-    
-    mirror2_gridLines[closestIndex].angle = newAngle;
-  }
+  // Randomize all mirror angles on click
+  mirror2_randomizeMirrors();
 }
 
 // Helper function: initialize grid with random angles
