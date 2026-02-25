@@ -115,6 +115,14 @@
     margin-top: 10px;
   }
 
+  .canvas-prompt {
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    font-size: 13px;
+    margin: 8px 0 0 0;
+    letter-spacing: 0.05em;
+  }
+
   h2 {
     margin-top: 0;
   }
@@ -143,8 +151,11 @@
 </head>
 <body>
   <div class="container">
-    <div class="box canvas-box" id="canvas-container">
-      <!-- P5.js canvas will appear here -->
+    <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+      <div class="box canvas-box" id="canvas-container">
+        <!-- P5.js canvas will appear here -->
+      </div>
+      <p class="canvas-prompt">Click on the artwork to interact</p>
     </div>
     
     <div class="box controls-box">
@@ -322,63 +333,34 @@
     
     function exportSVG() {
       console.log("Exporting SVG...");
-      
-      exportMode = true;
-      
-      // Remove old canvas
-      let oldCanvas = select('canvas');
-      if (oldCanvas) oldCanvas.remove();
-      
-      // Create SVG canvas
-      createCanvas(600, 600, SVG);
-      strokeCap(ROUND);
-      
-      // Draw current artwork
+
+      // Create an offscreen SVG graphics buffer
+      let pg = createGraphics(600, 600, SVG);
+      pg.strokeCap(ROUND);
+
+      // Temporarily redirect p5's global renderer to the SVG buffer
+      let savedRenderer = _renderer;
+      _renderer = pg._renderer;
+
+      // Draw the current artwork into the SVG buffer
       background(bgColor);
       switch(currentToy) {
-        case 'laserMirror0':
-          drawLaserMirror0();
-          break;
-        case 'laserMirror1':
-          drawLaserMirror1();
-          break;
-        case 'laserMirror2':
-          drawLaserMirror2();
-          break;
-        case 'laserMirror3':
-          drawLaserMirror3();
-          break;
-        case 'laserMirror4':
-          drawLaserMirror4();
-          break;
-        case 'laserMirror5':
-          drawLaserMirror5();
-          break;
+        case 'laserMirror0': drawLaserMirror0(); break;
+        case 'laserMirror1': drawLaserMirror1(); break;
+        case 'laserMirror2': drawLaserMirror2(); break;
+        case 'laserMirror3': drawLaserMirror3(); break;
+        case 'laserMirror4': drawLaserMirror4(); break;
+        case 'laserMirror5': drawLaserMirror5(); break;
       }
-      
-      // Save SVG
-      save(currentToy + '.svg');
-      
-      console.log("SVG saved! Restoring preview...");
-      
-      // Wait a moment then restore preview canvas
-      setTimeout(() => {
-        exportMode = false;
-        
-        // Remove SVG canvas
-        let svgCanvas = select('canvas');
-        if (svgCanvas) svgCanvas.remove();
-        
-        // Wait for DOM to settle
-        setTimeout(() => {
-          // Recreate preview canvas
-          let canvas = createCanvas(600, 600);
-          canvas.parent('canvas-container');
-          strokeCap(ROUND);
-          
-          console.log("Preview restored.");
-        }, 100);
-      }, 500);
+
+      // Restore the main canvas renderer
+      _renderer = savedRenderer;
+
+      // Save the SVG buffer
+      pg.save(currentToy + '.svg');
+      pg.remove();
+
+      console.log("SVG exported!");
     }
     
     // ============================================

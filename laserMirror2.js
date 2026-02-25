@@ -101,23 +101,19 @@ function drawLaserMirror2() {
     }
   }
   
-  // Draw the bouncing laser ray first (mirrors will go on top)
-  stroke(laserColor);
-  strokeWeight(laserWeight);
-  
+  // Draw fill shape
+  let laserPoints2 = [[0, height / 2]];
   rayX = 0;
   rayY = height / 2;
   rayAngle = 0;
-  
+
   for (let bounce = 0; bounce < maxBounces; bounce++) {
     let closestDist = Infinity;
     let closestHit = null;
     let hitType = null;
-    
     let dx = cos(radians(rayAngle));
     let dy = sin(radians(rayAngle));
-    
-    // Check intersection with each grid line
+
     for (let gridLine of mirror2_gridLines) {
       let hit = mirror2_rayLineIntersection(rayX, rayY, dx, dy, gridLine, mirror2_lineLength);
       if (hit && hit.dist > 0.01 && hit.dist < closestDist) {
@@ -126,66 +122,67 @@ function drawLaserMirror2() {
         hitType = 'grid';
       }
     }
-    
-    // Check intersection with borders
+
     let borderHit = mirror2_rayBorderIntersection(rayX, rayY, dx, dy);
     if (borderHit && borderHit.dist > 0.01 && borderHit.dist < closestDist) {
       closestDist = borderHit.dist;
       closestHit = { x: borderHit.x, y: borderHit.y };
       hitType = 'border';
     }
-    
+
     if (!closestHit) break;
-    
-    // Draw line segment to hit point
-    line(rayX, rayY, closestHit.x, closestHit.y);
-    
+    laserPoints2.push([closestHit.x, closestHit.y]);
+
     if (hitType === 'border') {
       break;
     } else {
-      // Hit grid line, reflect
       let mirrorAngle = closestHit.gridLine.angle;
-      
-      // Check if ray is parallel to mirror (passes through)
       let angleDiff = abs((rayAngle % 180) - (mirrorAngle % 180));
       if (angleDiff < 1 || angleDiff > 179) {
         rayX = closestHit.x + dx * 0.1;
         rayY = closestHit.y + dy * 0.1;
         continue;
       }
-      
-      // Calculate reflection using proper vector reflection
       let mirrorRad = radians(mirrorAngle);
       let normalX = -sin(mirrorRad);
       let normalY = cos(mirrorRad);
-      
       let rayDx = cos(radians(rayAngle));
       let rayDy = sin(radians(rayAngle));
-      
       let dot = rayDx * normalX + rayDy * normalY;
       let reflectDx = rayDx - 2 * dot * normalX;
       let reflectDy = rayDy - 2 * dot * normalY;
-      
       rayAngle = degrees(atan2(reflectDy, reflectDx));
-      
       rayX = closestHit.x + cos(radians(rayAngle)) * 0.1;
       rayY = closestHit.y + sin(radians(rayAngle)) * 0.1;
     }
   }
 
-  // Draw mirrors on top of laser, with opacity based on whether hit
+  if (useFill && laserPoints2.length > 2) {
+    fill(fillColor);
+    noStroke();
+    beginShape();
+    for (let pt of laserPoints2) vertex(pt[0], pt[1]);
+    endShape(CLOSE);
+  }
+
+  // Draw laser lines
+  stroke(laserColor);
+  strokeWeight(laserWeight);
+  noFill();
+  for (let i = 0; i < laserPoints2.length - 1; i++) {
+    line(laserPoints2[i][0], laserPoints2[i][1], laserPoints2[i+1][0], laserPoints2[i+1][1]);
+  }
+
+  // Draw mirrors on top
   strokeWeight(mirrorWeight);
   noFill();
-
   for (let i = 0; i < mirror2_gridLines.length; i++) {
     let gridLine = mirror2_gridLines[i];
-
     if (mirror2_hitMirrors.has(i)) {
       stroke(mirrorColor);
     } else {
       stroke(red(mirrorColor), green(mirrorColor), blue(mirrorColor), 128);
     }
-
     push();
     translate(gridLine.x, gridLine.y);
     rotate(radians(gridLine.angle));
@@ -199,7 +196,6 @@ function drawLaserMirror2() {
   noFill();
   rect(0, 0, width, height);
 }
-
 function laserMirror2_mousePressed() {
   // Randomize all mirror angles on click
   mirror2_randomizeMirrors();

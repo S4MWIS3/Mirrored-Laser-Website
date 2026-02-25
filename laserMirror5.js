@@ -35,11 +35,8 @@ function drawLaserMirror5() {
   let cellSize = gridSize / 7;
   let lineLength = cellSize * 0.6;
 
-  // Draw laser first
-  stroke(laserColor);
-  strokeWeight(laserWeight);
-  noFill();
-
+  // Collect laser path vertices
+  let laserPoints = [[0, mirror5_mirrorPositions[mirror5_visitOrder[0]].y]];
   let rayX = 0;
   let rayY = mirror5_mirrorPositions[mirror5_visitOrder[0]].y;
   let rayAngle = 0;
@@ -48,10 +45,9 @@ function drawLaserMirror5() {
     let targetMirror = mirror5_visitOrder[i];
     let targetPos = mirror5_mirrorPositions[targetMirror];
 
-    line(rayX, rayY, targetPos.x, targetPos.y);
+    laserPoints.push([targetPos.x, targetPos.y]);
 
     if (i === mirror5_visitOrder.length - 1) {
-      // Exit ray to border
       let mirrorAngle = mirror5_mirrorAngles[targetMirror];
       let mirrorRad = radians(mirrorAngle);
       let normalX = -sin(mirrorRad);
@@ -62,13 +58,11 @@ function drawLaserMirror5() {
       let reflectDx = rayDx - 2 * dot * normalX;
       let reflectDy = rayDy - 2 * dot * normalY;
       let exitAngle = degrees(atan2(reflectDy, reflectDx));
-
       let exit = mirror5_borderIntersection(targetPos.x, targetPos.y, exitAngle);
-      if (exit) line(targetPos.x, targetPos.y, exit.x, exit.y);
+      if (exit) laserPoints.push([exit.x, exit.y]);
       break;
     }
 
-    // Reflect
     let mirrorAngle = mirror5_mirrorAngles[targetMirror];
     let mirrorRad = radians(mirrorAngle);
     let normalX = -sin(mirrorRad);
@@ -82,6 +76,23 @@ function drawLaserMirror5() {
     rayAngle = degrees(atan2(reflectDy, reflectDx));
     rayX = targetPos.x;
     rayY = targetPos.y;
+  }
+
+  // Draw fill shape
+  if (useFill && laserPoints.length > 2) {
+    fill(fillColor);
+    noStroke();
+    beginShape();
+    for (let pt of laserPoints) vertex(pt[0], pt[1]);
+    endShape(CLOSE);
+  }
+
+  // Draw laser lines
+  stroke(laserColor);
+  strokeWeight(laserWeight);
+  noFill();
+  for (let i = 0; i < laserPoints.length - 1; i++) {
+    line(laserPoints[i][0], laserPoints[i][1], laserPoints[i+1][0], laserPoints[i+1][1]);
   }
 
   // Draw mirrors on top

@@ -17,38 +17,25 @@ let mirror1_lineAngles = [
 ];
 
 function drawLaserMirror1() {
-  // Initialize grid if not already done
   if (mirror1_gridLines.length === 0) {
     mirror1_initializeGrid();
   }
-  
-  // Calculate spacing based on grid size
-  let spacingX = mirror1_gridSize / (mirror1_gridCols + 1);
-  let spacingY = mirror1_gridSize / (mirror1_gridRows + 1);
-  
-  // Center the grid on the canvas
-  let gridStartX = (width - mirror1_gridSize) / 2;
-  let gridStartY = (height - mirror1_gridSize) / 2;
-  
-  // Trace the bouncing laser ray (drawn first, mirrors go on top)
-  stroke(laserColor);
-  strokeWeight(laserWeight);
-  
+
+  // Trace the bouncing laser ray, collecting vertices
+  let laserPoints = [[0, height / 2]];
   let rayX = 0;
   let rayY = height / 2;
-  let rayAngle = 0; // Traveling horizontally to the right
+  let rayAngle = 0;
   let maxBounces = 20;
-  
+
   for (let bounce = 0; bounce < maxBounces; bounce++) {
-    // Find next intersection
     let closestDist = Infinity;
     let closestHit = null;
-    let hitType = null; // 'grid' or 'border'
-    
+    let hitType = null;
+
     let dx = cos(radians(rayAngle));
     let dy = sin(radians(rayAngle));
-    
-    // Check intersection with each grid line
+
     for (let gridLine of mirror1_gridLines) {
       let hit = mirror1_rayLineIntersection(rayX, rayY, dx, dy, gridLine, mirror1_lineLength);
       if (hit && hit.dist > 0.01 && hit.dist < closestDist) {
@@ -57,61 +44,55 @@ function drawLaserMirror1() {
         hitType = 'grid';
       }
     }
-    
-    // Check intersection with borders
+
     let borderHit = mirror1_rayBorderIntersection(rayX, rayY, dx, dy);
     if (borderHit && borderHit.dist > 0.01 && borderHit.dist < closestDist) {
       closestDist = borderHit.dist;
       closestHit = { x: borderHit.x, y: borderHit.y };
       hitType = 'border';
     }
-    
-    if (!closestHit) break; // No intersection found
-    
-    // Draw line segment to hit point
-    line(rayX, rayY, closestHit.x, closestHit.y);
-    
-    // If fill is enabled, could add fill shapes here
-    if (useFill && hitType === 'grid') {
-      fill(fillColor);
-      noStroke();
-      // Draw a small circle at bounce point
-      ellipse(closestHit.x, closestHit.y, 5, 5);
-      stroke(laserColor);
-      strokeWeight(laserWeight);
-      noFill();
-    }
-    
+
+    if (!closestHit) break;
+
+    laserPoints.push([closestHit.x, closestHit.y]);
+
     if (hitType === 'border') {
-      // Hit border, stop
       break;
     } else {
-      // Hit grid line, reflect
       let mirrorAngle = closestHit.gridLine.angle;
-      
-      // Check if ray is parallel to mirror (passes through)
       let angleDiff = abs((rayAngle % 180) - (mirrorAngle % 180));
       if (angleDiff < 1 || angleDiff > 179) {
-        // Parallel, pass through
         rayX = closestHit.x + dx * 0.1;
         rayY = closestHit.y + dy * 0.1;
         continue;
       }
-      
-      // Calculate reflection
       rayAngle = 2 * mirrorAngle - rayAngle;
-      
-      // Move slightly past intersection to avoid re-hitting same line
       rayX = closestHit.x + cos(radians(rayAngle)) * 0.1;
       rayY = closestHit.y + sin(radians(rayAngle)) * 0.1;
     }
   }
 
-  // Draw mirrors on top of laser
+  // Draw fill shape first (under laser lines)
+  if (useFill && laserPoints.length > 2) {
+    fill(fillColor);
+    noStroke();
+    beginShape();
+    for (let pt of laserPoints) vertex(pt[0], pt[1]);
+    endShape(CLOSE);
+  }
+
+  // Draw laser lines
+  stroke(laserColor);
+  strokeWeight(laserWeight);
+  noFill();
+  for (let i = 0; i < laserPoints.length - 1; i++) {
+    line(laserPoints[i][0], laserPoints[i][1], laserPoints[i+1][0], laserPoints[i+1][1]);
+  }
+
+  // Draw mirrors on top
   stroke(mirrorColor);
   strokeWeight(mirrorWeight);
   noFill();
-
   for (let gridLine of mirror1_gridLines) {
     push();
     translate(gridLine.x, gridLine.y);
@@ -120,8 +101,6 @@ function drawLaserMirror1() {
     pop();
   }
 }
-
-function laserMirror1_mousePressed() {
   // Find which grid cell was clicked and rotate that mirror line
   let spacingX = mirror1_gridSize / (mirror1_gridCols + 1);
   let spacingY = mirror1_gridSize / (mirror1_gridRows + 1);

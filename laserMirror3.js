@@ -36,20 +36,10 @@ function drawLaserMirror3() {
   let cellSize = gridSize / 7;
   let lineLength = cellSize * 0.6;
 
-  // Trace laser path first (mirrors drawn on top after)
-  stroke(laserColor);
-  strokeWeight(laserWeight);
-  if (useFill) {
-    fill(fillColor);
-  } else {
-    noFill();
-  }
-
+  // Collect laser path vertices
   let rayX = 0;
   let rayY = mirror3_mirrorPositions[mirror3_visitOrder[0]].y;
   let rayAngle = 0;
-
-  // Collect laser points for optional fill shape
   let laserPoints = [[rayX, rayY]];
 
   for (let i = 0; i < mirror3_visitOrder.length; i++) {
@@ -96,21 +86,16 @@ function drawLaserMirror3() {
     rayY = targetPos.y;
   }
 
-  // Draw laser (as fill shape or polyline)
+  // Draw fill shape
   if (useFill && laserPoints.length > 2) {
     fill(fillColor);
     noStroke();
     beginShape();
-    for (let pt of laserPoints) {
-      vertex(pt[0], pt[1]);
-    }
+    for (let pt of laserPoints) vertex(pt[0], pt[1]);
     endShape(CLOSE);
-    stroke(laserColor);
-    strokeWeight(laserWeight);
-    noFill();
   }
 
-  // Always draw laser lines on top
+  // Draw laser lines
   stroke(laserColor);
   strokeWeight(laserWeight);
   noFill();
