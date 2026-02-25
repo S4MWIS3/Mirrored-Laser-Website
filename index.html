@@ -334,15 +334,19 @@
     function exportSVG() {
       console.log("Exporting SVG...");
 
-      // Create an offscreen SVG graphics buffer
-      let pg = createGraphics(600, 600, SVG);
-      pg.strokeCap(ROUND);
+      // Pause the draw loop
+      noLoop();
 
-      // Temporarily redirect p5's global renderer to the SVG buffer
-      let savedRenderer = _renderer;
-      _renderer = pg._renderer;
+      // Remove the existing canvas
+      let oldCanvas = select('canvas');
+      if (oldCanvas) oldCanvas.remove();
 
-      // Draw the current artwork into the SVG buffer
+      // Create a fresh SVG canvas in the container
+      let svgCanvas = createCanvas(600, 600, SVG);
+      svgCanvas.parent('canvas-container');
+      strokeCap(ROUND);
+
+      // Draw the artwork once into the SVG canvas
       background(bgColor);
       switch(currentToy) {
         case 'laserMirror0': drawLaserMirror0(); break;
@@ -353,14 +357,24 @@
         case 'laserMirror5': drawLaserMirror5(); break;
       }
 
-      // Restore the main canvas renderer
-      _renderer = savedRenderer;
+      // Trigger the SVG download
+      save(currentToy + '.svg');
 
-      // Save the SVG buffer
-      pg.save(currentToy + '.svg');
-      pg.remove();
+      console.log("SVG saved! Restoring preview...");
 
-      console.log("SVG exported!");
+      // Swap back to a regular canvas after a short delay
+      setTimeout(() => {
+        let svgEl = select('canvas');
+        if (svgEl) svgEl.remove();
+
+        setTimeout(() => {
+          let canvas = createCanvas(600, 600);
+          canvas.parent('canvas-container');
+          strokeCap(ROUND);
+          loop(); // Resume draw loop
+          console.log("Preview restored.");
+        }, 50);
+      }, 300);
     }
     
     // ============================================

@@ -101,6 +101,8 @@ function drawLaserMirror1() {
     pop();
   }
 }
+
+function laserMirror1_mousePressed() {
   // Find which grid cell was clicked and rotate that mirror line
   let spacingX = mirror1_gridSize / (mirror1_gridCols + 1);
   let spacingY = mirror1_gridSize / (mirror1_gridRows + 1);
