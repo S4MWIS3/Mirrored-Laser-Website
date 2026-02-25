@@ -512,6 +512,8 @@
 
       // Step 2: defer SVG canvas creation so DOM has fully cleared
       setTimeout(() => {
+        // Null out p5's internal renderer reference so p5.js-svg doesn't try to resize the old one
+        if (typeof _renderer !== 'undefined') _renderer = null;
         let svgCanvas = createCanvas(600, 600, SVG);
         svgCanvas.parent('p5-wrap');
         strokeCap(ROUND);
