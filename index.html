@@ -273,6 +273,15 @@
     }
     .hint strong { color: var(--text); font-weight: 400; }
 
+    .interact-hint {
+      margin-top: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      line-height: 1.7;
+      letter-spacing: 0.04em;
+    }
+
     /* ── Canvas prompt ─────────────────────────────── */
     .canvas-prompt {
       position: absolute;
@@ -304,7 +313,7 @@
 
     <!-- ── Controls panel ─────────────────────────── -->
     <div class="controls-box">
-      <div class="panel-title">Interactive Toy</div>
+      <div class="panel-title">Sam Merrick</div>
       <h2>Laser<br><span>Mirror</span></h2>
 
       <!-- Toy selector — always visible -->
@@ -371,10 +380,17 @@
         <div class="divider"></div>
 
         <button class="btn btn-accent" onclick="exportSVG()">Export SVG</button>
+        <p class="interact-hint">Click the artwork to interact — each toy responds differently.</p>
       </div>
 
       <!-- ── 3D controls ───────────────────────────── -->
       <div id="controls-3d">
+        <label class="control-label">Grid Size</label>
+        <div class="slider-row">
+          <input type="range" id="lm6GridN" min="2" max="10" value="3" step="1">
+          <span class="slider-val" id="lm6GridNVal">3</span>
+        </div>
+
         <label class="control-label">Mirror Size</label>
         <div class="slider-row">
           <input type="range" id="lm6MirrorSize" min="0.3" max="1.2" value="0.7" step="0.05">
@@ -389,9 +405,8 @@
 
         <div class="divider"></div>
 
-        <div class="stat-row"><span>Grid</span><span>3 × 3 × 3</span></div>
-        <div class="stat-row"><span>Mirrors</span><span>27</span></div>
-        <div class="stat-row"><span>Bounces</span><span>27</span></div>
+        <div class="stat-row"><span>Grid</span><span id="lm6StatGrid">3 × 3 × 3</span></div>
+        <div class="stat-row"><span>Mirrors</span><span id="lm6StatMirrors">27</span></div>
 
         <div class="divider"></div>
 
@@ -571,6 +586,16 @@
         const v = parseFloat(lm6GridSpacing.value);
         lm6GridSpacingVal.textContent = v.toFixed(1);
         LaserMirror6.setGridSpacing(v);
+      });
+
+      const lm6GridN = document.getElementById('lm6GridN');
+      const lm6GridNVal = document.getElementById('lm6GridNVal');
+      lm6GridN.addEventListener('input', () => {
+        const v = parseInt(lm6GridN.value);
+        lm6GridNVal.textContent = v;
+        document.getElementById('lm6StatGrid').textContent = `${v} × ${v} × ${v}`;
+        document.getElementById('lm6StatMirrors').textContent = v * v * v;
+        LaserMirror6.setGridN(v);
       });
 
       document.getElementById('lm6RandomizeBtn').addEventListener('click', () => LaserMirror6.rebuild());

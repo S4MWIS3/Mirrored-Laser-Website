@@ -13,8 +13,7 @@ const LaserMirror6 = (() => {
 
   let lm6_mirrorSize = 0.7;
   let lm6_gridSpacing = 2.5;
-
-  const GRID_N = 3;
+  let lm6_gridN = 3;
 
   // ── Orbit ────────────────────────────────────────────────────────────────
   const orb = {
@@ -45,7 +44,6 @@ const LaserMirror6 = (() => {
       const right = new THREE.Vector3();
       camera.getWorldDirection(right);
       right.cross(camera.up).normalize();
-      const up = new THREE.Vector3(0, 1, 0);
       orb.target.x -= right.x * dx * 0.008; orb.target.y += dy * 0.008; orb.target.z -= right.z * dx * 0.008;
     } else {
       orb.theta -= dx * 0.007;
@@ -55,7 +53,7 @@ const LaserMirror6 = (() => {
   }
   function onMouseUp() { orb.dragging = false; }
   function onWheel(e) {
-    orb.radius = Math.max(3, Math.min(60, orb.radius + e.deltaY * 0.02));
+    orb.radius = Math.max(3, Math.min(120, orb.radius + e.deltaY * 0.02));
     applyOrbit(); e.preventDefault();
   }
   function onContextMenu(e) { e.preventDefault(); }
@@ -70,11 +68,15 @@ const LaserMirror6 = (() => {
   }
 
   function gridPositions(spacing) {
-    const pts = [], offset = (GRID_N - 1) / 2;
-    for (let ix = 0; ix < GRID_N; ix++)
-    for (let iy = 0; iy < GRID_N; iy++)
-    for (let iz = 0; iz < GRID_N; iz++)
-      pts.push(new THREE.Vector3((ix - offset) * spacing, (iy - offset) * spacing, (iz - offset) * spacing));
+    const pts = [], offset = (lm6_gridN - 1) / 2;
+    for (let ix = 0; ix < lm6_gridN; ix++)
+    for (let iy = 0; iy < lm6_gridN; iy++)
+    for (let iz = 0; iz < lm6_gridN; iz++)
+      pts.push(new THREE.Vector3(
+        (ix - offset) * spacing,
+        (iy - offset) * spacing,
+        (iz - offset) * spacing
+      ));
     return pts;
   }
 
@@ -90,16 +92,34 @@ const LaserMirror6 = (() => {
     return n.normalize();
   }
 
+  // Returns true if point P lies too close to any segment in laserPts
+  // (i.e. the laser would pass through this mirror position)
+  function laserPassesThrough(P, laserPts, clearance) {
+    for (let i = 0; i < laserPts.length - 1; i++) {
+      const A = laserPts[i];
+      const B = laserPts[i + 1];
+      const AB = B.clone().sub(A);
+      const len = AB.length();
+      if (len < 1e-6) continue;
+      const dir = AB.clone().divideScalar(len);
+      const AP = P.clone().sub(A);
+      const t = Math.max(0, Math.min(len, AP.dot(dir)));
+      const closest = A.clone().addScaledVector(dir, t);
+      if (closest.distanceTo(P) < clearance) return true;
+    }
+    return false;
+  }
+
   // ── Build fns ─────────────────────────────────────────────────────────────
   function buildGround() {
     if (groundGroup) scene.remove(groundGroup);
     groundGroup = new THREE.Group();
     scene.add(groundGroup);
 
-    const gridExtent = (GRID_N - 1) * lm6_gridSpacing;
+    const gridExtent = (lm6_gridN - 1) * lm6_gridSpacing;
     const groundY = -(gridExtent / 2) - lm6_gridSpacing * 0.9;
     const step = lm6_gridSpacing * 0.5;
-    const extent = gridExtent * 1.8;
+    const extent = gridExtent * 1.8 + lm6_gridSpacing;
 
     const lineMat = new THREE.LineBasicMaterial({ color: 0xc8c6c0, transparent: true, opacity: 0.8 });
     const gridMesh = new THREE.Group();
@@ -134,7 +154,6 @@ const LaserMirror6 = (() => {
   }
 
   function getLaserColor() {
-    // Read from the shared laserColor if available (p5 color object), else fall back
     try {
       if (typeof laserColor !== 'undefined') {
         const r = Math.round(red(laserColor)).toString(16).padStart(2, '0');
@@ -154,20 +173,103 @@ const LaserMirror6 = (() => {
     scene.add(mirrorGroup);
     scene.add(laserGroup);
 
-    const positions = shuffle(gridPositions(lm6_gridSpacing));
-    const first = positions[0], second = positions[1];
-    const entryDir = second.clone().sub(first).normalize();
-    const entryOrigin = first.clone().sub(entryDir.clone().multiplyScalar(lm6_gridSpacing * 3.5));
+    const allPositions = shuffle(gridPositions(lm6_gridSpacing));
+    // clearance: laser must not pass within half a grid spacing of a mirror
+    const clearance = lm6_gridSpacing * 0.45;
 
-    const laserPts = [entryOrigin, ...positions.map(p => p.clone())];
-    const lastPrev = laserPts[laserPts.length - 2];
-    const lastCurr = laserPts[laserPts.length - 1];
-    const exitDir = lastCurr.clone().sub(lastPrev).normalize();
-    laserPts.push(lastCurr.clone().addScaledVector(exitDir, lm6_gridSpacing * 3.5));
+    // Build the laser path greedily, skipping mirrors the laser would pass through
+    // laserPts[0] = entryOrigin (off-grid)
+    // laserPts[1..n] = visited mirror positions
+    // laserPts[n+1] = exit point (off-grid)
 
-    // Solve normals & build mirrors
-    for (let i = 0; i < positions.length; i++) {
-      const prev = laserPts[i], curr = laserPts[i + 1], next = laserPts[i + 2];
+    const visitedPositions = [];  // mirror positions actually visited
+    const skippedPositions = [];  // mirrors not visited (hidden)
+
+    // We need at least 1 mirror to start. Pick first as anchor.
+    // Build path incrementally: at each step, check if the segment
+    // from current point to candidate passes through any already-placed mirror.
+    // We also check the entry segment from off-grid origin.
+
+    // First pass: determine entry direction from first two candidates
+    // We try up to allPositions.length for a valid first pair
+    let startIdx = 0;
+    const laserPts = [];
+
+    // Find first valid mirror
+    const first = allPositions[0];
+    // Entry: come from outside the grid
+    // We'll determine entry direction after picking second mirror
+    // For now collect visited in order, checking as we go
+    const tempVisited = [first];
+
+    for (let i = 1; i < allPositions.length; i++) {
+      tempVisited.push(allPositions[i]);
+    }
+
+    // Now build laserPts with no-pass-through checking
+    // Start: entry origin based on first two visited positions
+    const p0 = tempVisited[0];
+    const p1 = tempVisited[1] || tempVisited[0].clone().add(new THREE.Vector3(1, 0, 0));
+    const entryDir = p0.clone().sub(p1).normalize(); // come from opposite side
+    const entryOrigin = p0.clone().addScaledVector(entryDir, lm6_gridSpacing * 3.5);
+
+    // Build path: start with [entryOrigin, p0]
+    // For each subsequent candidate, check if segment from previous pt to candidate
+    // passes through any already-committed mirror (excluding the one we're heading to)
+    const committed = [entryOrigin, p0.clone()];
+    const visitedSet = [p0];
+    const hiddenSet = [];
+
+    for (let i = 1; i < tempVisited.length; i++) {
+      const candidate = tempVisited[i];
+      const prevPt = committed[committed.length - 1];
+
+      // Build a temporary segment [prevPt -> candidate] and check against
+      // all already-committed mirror positions (not counting prevPt itself which is a mirror vertex)
+      const tempSeg = [prevPt, candidate];
+
+      let blocked = false;
+      // Check this new segment against all previously visited mirror positions
+      // (skip index 0 = entryOrigin which isn't a mirror, skip the last = prevPt which is the current mirror)
+      for (let v = 1; v < committed.length - 1; v++) {
+        const mirrorPos = committed[v];
+        // distance from mirrorPos to segment [prevPt -> candidate]
+        const A = prevPt, B = candidate;
+        const AB = B.clone().sub(A);
+        const len = AB.length();
+        if (len < 1e-6) continue;
+        const dir = AB.clone().divideScalar(len);
+        const AP = mirrorPos.clone().sub(A);
+        const t = Math.max(0, Math.min(len, AP.dot(dir)));
+        const closest = A.clone().addScaledVector(dir, t);
+        if (closest.distanceTo(mirrorPos) < clearance) {
+          blocked = true;
+          break;
+        }
+      }
+
+      if (blocked) {
+        hiddenSet.push(candidate);
+      } else {
+        committed.push(candidate.clone());
+        visitedSet.push(candidate);
+      }
+    }
+
+    // Add exit point
+    const lastMirror = committed[committed.length - 1];
+    const secondLast = committed[committed.length - 2];
+    const exitDir = lastMirror.clone().sub(secondLast).normalize();
+    committed.push(lastMirror.clone().addScaledVector(exitDir, lm6_gridSpacing * 3.5));
+
+    const finalLaserPts = committed;
+
+    // ── Draw mirrors ──────────────────────────────────────────────────────
+    // Visited mirrors: full opacity with normal/edge decoration
+    for (let i = 0; i < visitedSet.length; i++) {
+      const curr = finalLaserPts[i + 1]; // i+1 because [0] is entryOrigin
+      const prev = finalLaserPts[i];
+      const next = finalLaserPts[i + 2];
       const inDir = curr.clone().sub(prev).normalize();
       const outDir = next.clone().sub(curr).normalize();
       const normal = solveNormal(inDir, outDir);
@@ -184,18 +286,36 @@ const LaserMirror6 = (() => {
 
       mirrorGroup.add(mesh);
 
+      // Small grey dot at mirror position (no large red spheres)
       const dot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), new THREE.MeshBasicMaterial({ color: 0xbbbbbb }));
       dot.position.copy(curr);
       mirrorGroup.add(dot);
     }
 
-    // Laser
-    const laserCol = getLaserColor();
-    laserGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(laserPts), new THREE.LineBasicMaterial({ color: laserCol })));
+    // Hidden mirrors: very faint ghost, no decoration
+    for (const pos of hiddenSet) {
+      const geo = new THREE.PlaneGeometry(lm6_mirrorSize * 0.8, lm6_mirrorSize * 0.8);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide, transparent: true, opacity: 0.10 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(pos);
+      // Face a default direction (arbitrary)
+      mesh.lookAt(pos.clone().add(new THREE.Vector3(0, 1, 0.5)));
+      mirrorGroup.add(mesh);
+    }
 
+    // ── Draw laser ────────────────────────────────────────────────────────
+    const laserCol = getLaserColor();
+
+    // Main line
+    laserGroup.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(finalLaserPts),
+      new THREE.LineBasicMaterial({ color: laserCol })
+    ));
+
+    // Glow tubes
     const glowMat = new THREE.MeshBasicMaterial({ color: laserCol, transparent: true, opacity: 0.10 });
-    for (let i = 0; i < laserPts.length - 1; i++) {
-      const a = laserPts[i], b = laserPts[i + 1];
+    for (let i = 0; i < finalLaserPts.length - 1; i++) {
+      const a = finalLaserPts[i], b = finalLaserPts[i + 1];
       const len = a.distanceTo(b);
       if (len < 0.001) continue;
       const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 8, 1), glowMat);
@@ -204,13 +324,11 @@ const LaserMirror6 = (() => {
       laserGroup.add(tube);
     }
 
-    const bounceMat = new THREE.MeshBasicMaterial({ color: laserCol });
-    for (let i = 1; i < laserPts.length - 1; i++) {
-      const d = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), bounceMat);
-      d.position.copy(laserPts[i]);
-      laserGroup.add(d);
-    }
-    const emitter = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshBasicMaterial({ color: laserCol }));
+    // Emitter sphere only (no bounce spheres at mirrors)
+    const emitter = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 12, 12),
+      new THREE.MeshBasicMaterial({ color: laserCol })
+    );
     emitter.position.copy(entryOrigin);
     laserGroup.add(emitter);
   }
@@ -247,7 +365,7 @@ const LaserMirror6 = (() => {
     // Faint axes
     const axisMat = (c) => new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.07 });
     const mkLine = (a, b, mat) => new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), mat);
-    const R = 25, ax = new THREE.Group();
+    const R = 60, ax = new THREE.Group();
     ax.add(mkLine(new THREE.Vector3(-R,0,0), new THREE.Vector3(R,0,0), axisMat(0xdd4444)));
     ax.add(mkLine(new THREE.Vector3(0,-R,0), new THREE.Vector3(0,R,0), axisMat(0x44aa44)));
     ax.add(mkLine(new THREE.Vector3(0,0,-R), new THREE.Vector3(0,0,R), axisMat(0x4466dd)));
@@ -256,14 +374,12 @@ const LaserMirror6 = (() => {
     applyOrbit();
     lm6_rebuild();
 
-    // Events
     renderer.domElement.addEventListener('mousedown', onMouseDown);
     renderer.domElement.addEventListener('contextmenu', onContextMenu);
     renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
-    // Resize observer
     LaserMirror6._resizeObserver = new ResizeObserver(() => {
       renderer.setSize(W(), H());
       camera.aspect = W() / H();
@@ -303,6 +419,10 @@ const LaserMirror6 = (() => {
     updateLaserColor: () => { if (mounted) buildMirrorsAndLaser(); },
     setMirrorSize: (v) => { lm6_mirrorSize = v; if (mounted) buildMirrorsAndLaser(); },
     setGridSpacing: (v) => { lm6_gridSpacing = v; if (mounted) lm6_rebuild(); },
+    setGridN: (v) => {
+      lm6_gridN = Math.max(2, Math.min(10, Math.round(v)));
+      if (mounted) lm6_rebuild();
+    },
     resetView: () => {
       orb.theta = 0.6; orb.phi = 1.05; orb.radius = 22;
       orb.target.x = 0; orb.target.y = 0; orb.target.z = 0;
