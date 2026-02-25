@@ -503,32 +503,42 @@
     // ============================================
     function exportSVG() {
       if (currentToy === 'laserMirror6') return;
+
+      // Step 1: stop the draw loop and remove the existing canvas
+      noLoop();
       exportMode = true;
       let oldCanvas = select('canvas');
       if (oldCanvas) oldCanvas.remove();
-      createCanvas(600, 600, SVG);
-      strokeCap(ROUND);
-      background(bgColor);
-      switch(currentToy) {
-        case 'laserMirror0': drawLaserMirror0(); break;
-        case 'laserMirror1': drawLaserMirror1(); break;
-        case 'laserMirror2': drawLaserMirror2(); break;
-        case 'laserMirror3': drawLaserMirror3(); break;
-        case 'laserMirror4': drawLaserMirror4(); break;
-        case 'laserMirror5': drawLaserMirror5(); break;
-      }
-      save(currentToy + '.svg');
+
+      // Step 2: defer SVG canvas creation so DOM has fully cleared
       setTimeout(() => {
-        exportMode = false;
-        let svgCanvas = select('canvas');
-        if (svgCanvas) svgCanvas.remove();
+        let svgCanvas = createCanvas(600, 600, SVG);
+        svgCanvas.parent('p5-wrap');
+        strokeCap(ROUND);
+        background(bgColor);
+        switch(currentToy) {
+          case 'laserMirror0': drawLaserMirror0(); break;
+          case 'laserMirror1': drawLaserMirror1(); break;
+          case 'laserMirror2': drawLaserMirror2(); break;
+          case 'laserMirror3': drawLaserMirror3(); break;
+          case 'laserMirror4': drawLaserMirror4(); break;
+          case 'laserMirror5': drawLaserMirror5(); break;
+        }
+        save(currentToy + '.svg');
+
+        // Step 3: restore normal canvas after save has triggered
         setTimeout(() => {
-          let canvas = createCanvas(600, 600);
-          canvas.parent('p5-wrap');
-          strokeCap(ROUND);
-          loop();
-        }, 100);
-      }, 500);
+          exportMode = false;
+          let done = select('canvas');
+          if (done) done.remove();
+          setTimeout(() => {
+            let canvas = createCanvas(600, 600);
+            canvas.parent('p5-wrap');
+            strokeCap(ROUND);
+            loop();
+          }, 50);
+        }, 400);
+      }, 50);
     }
 
     // ============================================
