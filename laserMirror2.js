@@ -101,29 +101,7 @@ function drawLaserMirror2() {
     }
   }
   
-  // Now draw the grid of mirror lines with appropriate opacity
-  strokeWeight(mirrorWeight);
-  noFill();
-  
-  for (let i = 0; i < mirror2_gridLines.length; i++) {
-    let gridLine = mirror2_gridLines[i];
-    
-    // Set opacity based on whether this mirror was hit
-    if (mirror2_hitMirrors.has(i)) {
-      stroke(mirrorColor); // Full opacity
-    } else {
-      // Create a copy of the color with 50% opacity
-      stroke(red(mirrorColor), green(mirrorColor), blue(mirrorColor), 128);
-    }
-    
-    push();
-    translate(gridLine.x, gridLine.y);
-    rotate(radians(gridLine.angle));
-    line(-mirror2_lineLength / 2, 0, mirror2_lineLength / 2, 0);
-    pop();
-  }
-  
-  // Now draw the bouncing laser ray
+  // Draw the bouncing laser ray first (mirrors will go on top)
   stroke(laserColor);
   strokeWeight(laserWeight);
   
@@ -194,7 +172,27 @@ function drawLaserMirror2() {
       rayY = closestHit.y + sin(radians(rayAngle)) * 0.1;
     }
   }
-  
+
+  // Draw mirrors on top of laser, with opacity based on whether hit
+  strokeWeight(mirrorWeight);
+  noFill();
+
+  for (let i = 0; i < mirror2_gridLines.length; i++) {
+    let gridLine = mirror2_gridLines[i];
+
+    if (mirror2_hitMirrors.has(i)) {
+      stroke(mirrorColor);
+    } else {
+      stroke(red(mirrorColor), green(mirrorColor), blue(mirrorColor), 128);
+    }
+
+    push();
+    translate(gridLine.x, gridLine.y);
+    rotate(radians(gridLine.angle));
+    line(-mirror2_lineLength / 2, 0, mirror2_lineLength / 2, 0);
+    pop();
+  }
+
   // Draw border
   stroke(mirrorColor);
   strokeWeight(mirrorWeight);

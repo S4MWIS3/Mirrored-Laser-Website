@@ -30,20 +30,7 @@ function drawLaserMirror1() {
   let gridStartX = (width - mirror1_gridSize) / 2;
   let gridStartY = (height - mirror1_gridSize) / 2;
   
-  // Draw the grid of mirror lines
-  stroke(mirrorColor);
-  strokeWeight(mirrorWeight);
-  noFill();
-  
-  for (let gridLine of mirror1_gridLines) {
-    push();
-    translate(gridLine.x, gridLine.y);
-    rotate(radians(gridLine.angle));
-    line(-mirror1_lineLength / 2, 0, mirror1_lineLength / 2, 0);
-    pop();
-  }
-  
-  // Now trace the bouncing laser ray
+  // Trace the bouncing laser ray (drawn first, mirrors go on top)
   stroke(laserColor);
   strokeWeight(laserWeight);
   
@@ -118,6 +105,19 @@ function drawLaserMirror1() {
       rayX = closestHit.x + cos(radians(rayAngle)) * 0.1;
       rayY = closestHit.y + sin(radians(rayAngle)) * 0.1;
     }
+  }
+
+  // Draw mirrors on top of laser
+  stroke(mirrorColor);
+  strokeWeight(mirrorWeight);
+  noFill();
+
+  for (let gridLine of mirror1_gridLines) {
+    push();
+    translate(gridLine.x, gridLine.y);
+    rotate(radians(gridLine.angle));
+    line(-mirror1_lineLength / 2, 0, mirror1_lineLength / 2, 0);
+    pop();
   }
 }
 
